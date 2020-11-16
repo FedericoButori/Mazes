@@ -1,0 +1,99 @@
+import matplotlib as mp
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import numpy as np
+
+wall_thickness = 10  #thickness of the randomly generated maze's walls
+image = mpimg.imread("maze2.png")   #read image   (need to find a way to import from bash input)
+
+maze = image[::wall_thickness, ::wall_thickness, 1]     #since image is in bnw we select only the first array of the 3D tensor
+                                                        #also, since every block has side 10 pixel, we record only one pixel for any 10X10 block
+
+
+"""now we assign to the maze a corresponding graph"""
+
+G = {}   #Creating a dictionary array-like where keys are tuples (i,j) and values are list of tuples representing nodes
+for i in range(1, len(maze)-1):
+    for j in range(1, len(maze)-1):
+        if maze[i][j] == 1:
+            new_node = {(i , j): []}
+            for k in (-1, 1):
+                if maze[i + k][j] == 1:
+                    new_node[(i, j)].append((i+k, j))  #str(f(int_1,...,int_n)) performs f before converting to str
+                if maze[i][j + k] == 1:
+                        new_node[(i, j)].append((i, j+k))
+            G.update(new_node)
+"""determine enter and exit point"""
+for j in range(len(maze)):  #assuming there is an enter and exit point on the diagonal
+    if maze[j, 0] == 1:
+        enter = j
+    if maze[j, len(maze)-1] == 1:
+        end = j
+
+ent_p = (enter, 0)
+end_p = (end, len(maze)-1)
+G.update({ent_p: [(enter, 1)]})   #adding enter node to the graph
+G.update({end_p: [(end, len(maze)-2)]})   #adding exit node to the graph
+"""eventually will replace function definition by call to saved function"""
+
+def find_path(graph, start, end, path=[]):
+    path = path + [start]
+    if not graph.get(start):
+        return path
+    if start == end:
+        return path
+    if not graph[start]:   #checks if the starting node is isolated
+        return None
+
+    for node in graph[start]:
+        if node not in path:
+            new_path = find_path(graph, node, end, path)
+            if new_path:
+                return new_path
+
+
+"""Now we want to simplify the graph G. Here the graph is not weighted so removing a leaf allow us to perform the 
+search on a simpler graph thus optimizing the algorithm. Moreover, in some (special? no loop i.e.) cases, recursively 
+removing all the leaves, leaves us with the unique solution of the maze"""
+
+"""We start by removing leaves"""
+
+def pop_leaves(Graph, start, end):
+    c = True    #simplificatons keep going until there are no more leaves
+    while c:
+        c = False #this remains false unless we pop at least one node
+        G_aux = dict.copy(Graph).keys()  #object in which we are ranging must not change size during iteration
+        to_be_removed = [] #creating a list of nodes to remove so we don't alter the graph in the for
+        for node in G_aux:
+            """ the first if looks for leaves to be removed"""
+            if len(Graph[node]) == 1 and node != start and node != end:   #we don't want to pop entrance and exit nodes!
+                to_be_removed = to_be_removed + [node] #node is added to the list
+                Graph[Graph[node][0]].remove(node)        # since len(Graph[node])=1 we know that the element in here is the
+                c = True                               # key of the only node connected to "node"
+
+        for node in to_be_removed:
+            Graph.pop(node)
+
+    return Graph
+
+G_simple = dict.copy(G)
+G_simple = pop_leaves(G_simple, ent_p, end_p)
+"""Let's check how many nodes we have cut down!"""
+print("Original graph length: ", len(G), '\nSimplified graph length:', len(G_simple))
+
+"""Function find_path only works if the number of nodes is quite small,
+ otherwise it reaches maximum recursion depth allowed"""
+#path = find_path(G, ent_p, end_p)
+#print("Length of the path: ", len(path))
+
+#print(G_simple.keys())
+#print(len(maze))
+#print(len(maze[1]))
+#print(maze)
+for node in G_simple.keys():            #coloring path (if i find a corresponding of the matlab "linspace" i will make
+        maze[node[0], node[1]] = 0.5    #the path gradient-like coloured)
+
+plt.imshow(maze)
+plt.show()
+
+
