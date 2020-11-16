@@ -26,4 +26,4 @@ and some major topics that I covered in that project.
 Lastly, since, as I said, I'm learning, any comment or correction will be very happily accepted,
 so feel free to comment!
 
-Happy reading, and if you too are starting, good luck!
+Happy reading, and if you too are getting started with python, good luck!
